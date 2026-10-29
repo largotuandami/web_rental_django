@@ -54,7 +54,7 @@ class BetForm(forms.Form):
     amount = forms.DecimalField(
         label="Số tiền cược (cho mỗi số)",
         min_value=1000,
-        widget=forms.NumberInput(attrs={'placeholder': 'Tối thiểu 1,000'})
+        widget=forms.NumberInput(attrs={'placeholder': 'Tối thiểu 1,000', 'step':'1000'})
     )
 
     def clean_number(self):

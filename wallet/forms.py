@@ -10,7 +10,7 @@ class DepositRequestForm(forms.ModelForm):
             'transaction_code': 'Nội dung CK / Mã giao dịch'
         }
         widgets = {
-            'amount': forms.NumberInput(attrs={'placeholder': 'Ví dụ: 500000', 'step': '50000'}),
+            'amount': forms.NumberInput(attrs={'placeholder': 'Ví dụ: 500000', 'step': '10000'}),
             'transaction_code': forms.TextInput(attrs={'placeholder': 'Ví dụ: VCB 123456 Nguyễn Văn A'})
         }
 
@@ -28,7 +28,7 @@ class WithdrawalRequestForm(forms.ModelForm):
             'account_number': 'Số tài khoản',
         }
         widgets = {
-            'amount': forms.NumberInput(attrs={'placeholder': 'Ví dụ: 500000', 'step': '50000'}),
+            'amount': forms.NumberInput(attrs={'placeholder': 'Ví dụ: 500000', 'step': '10000'}),
         }
 
     # (Giữ nguyên hàm __init__ và clean_amount)

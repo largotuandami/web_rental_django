@@ -1,64 +1,86 @@
+import json
 from django.contrib import admin, messages
-from .models import LotteryResult, Bet, LotteryStation  # Thêm LotteryStation
-from .logic import process_lottery_results
+from django.utils.html import format_html
+from .models import Bike, PaymentLog
+
+MQTT_BROKER = "broker.emqx.io"
+MQTT_PORT = 1883
+
+def send_mqtt_command(bike_id, command, duration=0):
+    """Hàm gửi MQTT an toàn, trả về (True, None) nếu thành công hoặc (False, Lỗi) nếu thất bại"""
+    try:
+        import paho.mqtt.publish as publish
+        topic = f"bike/{bike_id}/control"
+        payload = {"command": command}
+        if duration > 0:
+            payload["duration"] = duration
+
+        publish.single(
+            topic,
+            payload=json.dumps(payload),
+            hostname=MQTT_BROKER,
+            port=MQTT_PORT
+        )
+        return True, None
+    except Exception as e:
+        return False, str(e)
 
 
-# Đăng ký model mới
-@admin.register(LotteryStation)
-class LotteryStationAdmin(admin.ModelAdmin):
-    list_display = ('name', 'identifier', 'region', 'prize_count', 'cutoff_hour', 'schedule_days')
-    list_filter = ('region',)
-    search_fields = ('name', 'identifier')
+@admin.register(Bike)
+class BikeAdmin(admin.ModelAdmin):
+    list_display = ('bike_id', 'name', 'status_badge', 'remaining_minutes_display', 'is_active')
+    actions = ['unlock_5_mins', 'unlock_30_mins', 'lock_bikes_now', 'beep_find_bike']
+
+    def status_badge(self, obj):
+        if not obj.is_active:
+            return format_html('<span style="color: gray; font-weight: bold;">Bảo trì</span>')
+        if obj.is_rented:
+            return format_html('<span style="color: green; font-weight: bold;">🟢 Đang chạy</span>')
+        return format_html('<span style="color: #d9534f; font-weight: bold;">🔴 Đang khóa (Rảnh)</span>')
+    status_badge.short_description = "Trạng thái"
+
+    def remaining_minutes_display(self, obj):
+        if obj.is_rented:
+            return f"Còn {obj.remaining_minutes} phút"
+        return "0 phút"
+    remaining_minutes_display.short_description = "Thời gian còn lại"
+
+    # --- CÁC NÚT BẤM ĐÃ BỌC BẮT LỖI AN TOÀN ---
+    # Trong file admin.py, sửa lại các action của BikeAdmin như sau:
+
+    @admin.action(description="🔓 Mở khóa / Cộng thêm 5 Phút (Cứu hộ)")
+    def unlock_5_mins(self, request, queryset):
+        for bike in queryset:
+            bike.pending_command = "UNLOCK"
+            bike.pending_duration += 300  # Cộng dồn nếu đang có lệnh chờ
+            bike.add_rental_time(300)     # Hàm này đã có sẵn lệnh bike.save()
+            self.message_user(request, f"Đã xếp lệnh mở khóa 5 phút cho xe {bike.bike_id}!", messages.SUCCESS)
+
+    @admin.action(description="🔓 Mở khóa / Cộng thêm 30 Phút (Thu tiền mặt)")
+    def unlock_30_mins(self, request, queryset):
+        for bike in queryset:
+            bike.pending_command = "UNLOCK"
+            bike.pending_duration += 1800
+            bike.add_rental_time(1800)
+            self.message_user(request, f"Đã xếp lệnh mở khóa 30 phút cho xe {bike.bike_id}!", messages.SUCCESS)
+
+    @admin.action(description="🔒 KHÓA XE KHẨN CẤP NGAY LẬP TỨC")
+    def lock_bikes_now(self, request, queryset):
+        for bike in queryset:
+            bike.pending_command = "LOCK"
+            bike.pending_duration = 0
+            bike.lock_immediately()
+            self.message_user(request, f"Đã phát lệnh KHÓA KHẨN CẤP xe {bike.bike_id}!", messages.WARNING)
+
+    @admin.action(description="🔊 Bật còi tìm xe trong bãi")
+    def beep_find_bike(self, request, queryset):
+        for bike in queryset:
+            bike.pending_command = "FIND"
+            bike.save()
+            self.message_user(request, f"Đã phát lệnh còi xe {bike.bike_id}!", messages.INFO)
 
 
-# Nâng cấp model cũ
-@admin.register(LotteryResult)
-class LotteryResultAdmin(admin.ModelAdmin):
-    list_display = ('date', 'station', 'de_number', 'prizes_count')
-    list_filter = ('date', 'station')
-    readonly_fields = ('de_number', 'lo_numbers')
-    search_fields = ['date']
-    actions = ['run_calculation']
-
-    @admin.action(description="Tính toán thắng/thua cho các kết quả đã chọn")
-    def run_calculation(self, request, queryset):
-        success_count = 0
-        error_count = 0
-
-        for result_obj in queryset:
-            if result_obj.station:
-                success_msg, error_msg = process_lottery_results(
-                    result_obj.date,
-                    result_obj.station.id
-                )
-
-                if error_msg:
-                    self.message_user(request, f"Lỗi ngày {result_obj.date} ({result_obj.station.name}): {error_msg}",
-                                      messages.ERROR)
-                    error_count += 1
-                if success_msg:
-                    self.message_user(request,
-                                      f"Kết quả ngày {result_obj.date} ({result_obj.station.name}): {success_msg}",
-                                      messages.INFO)
-                    success_count += 1
-            else:
-                self.message_user(request, f"Lỗi: Kết quả ngày {result_obj.date} thiếu đài.", messages.ERROR)
-                error_count += 1
-
-        self.message_user(request, f"Hoàn tất xử lý. Thành công: {success_count}, Lỗi: {error_count}.",
-                          messages.SUCCESS)
-
-    def prizes_count(self, obj):
-        if obj.prizes:
-            return len(obj.prizes)
-        return 0
-
-    prizes_count.short_description = "Số lượng giải"
-
-
-@admin.register(Bet)
-class BetAdmin(admin.ModelAdmin):
-    list_display = ('user', 'station', 'bet_type', 'number', 'amount', 'date', 'status', 'winnings', 'created_at')
-    list_filter = ('date', 'status', 'bet_type', 'station')
-    search_fields = ('user__username', 'number', 'station__name')
-    readonly_fields = ('winnings', 'created_at')
+@admin.register(PaymentLog)
+class PaymentLogAdmin(admin.ModelAdmin):
+    list_display = ('bike', 'amount', 'duration_sec', 'content', 'created_at')
+    list_filter = ('bike', 'created_at')

@@ -44,8 +44,8 @@ Nhiệm vụ của bạn là phân tích hình ảnh kết quả xổ số.
 Hãy tìm {prize_count} giải thưởng theo đúng cấu trúc sau:
 {prize_structure}
 
-Hãy trả về CHỈ MỘT đối tượng JSON (JSON object) duy nhất, 
-không có bất kỳ văn bản giải thích nào khác. 
+Hãy trả về CHỈ MỘT đối tượng JSON (JSON object) duy nhất,
+không có bất kỳ văn bản giải thích nào khác.
 Định dạng JSON:
 {{
   "prizes": ["<giải ĐB>", "<giải Nhất>", ..., "<giải cuối cùng>"]
@@ -80,7 +80,7 @@ def get_results_from_gemini(image_file, prize_count):
 
 # --- LOGIC TÍNH TOÁN (Đã nâng cấp) ---
 DE_RATE = Decimal('70.0')
-LO_RATE = Decimal('80.0') / Decimal('23.0')
+LO_RATE = Decimal('80.0') / Decimal('20.0')
 
 
 def process_lottery_results(process_date, station_id):
