@@ -43,14 +43,14 @@ def rent_bike_view(request, bike_id):
 
     if bike.is_rented:
         status_banner = f"""
-        <div id="status-banner" style="background:#fff3cd; color:#856404; padding:12px; border-radius:8px; margin-bottom:15px; font-weight:bold;">
+        <div id="status-banner" class="status-banner" style="background:#fff3cd; color:#856404; font-weight:bold;">
             ⚡ Xe đang hoạt động (Còn <span id="banner-mins">{bike.remaining_minutes}</span> phút).<br>
             Quét mã bên dưới nếu bạn muốn MUA THÊM GIỜ!
         </div>
         """
     else:
         status_banner = """
-        <div id="status-banner" style="background:#d4edda; color:#155724; padding:10px; border-radius:8px; margin-bottom:15px; font-weight:bold;">
+        <div id="status-banner" class="status-banner" style="background:#d4edda; color:#155724; font-weight:bold;">
             ✅ Xe đang sẵn sàng phục vụ!
         </div>
         """
@@ -63,10 +63,86 @@ def rent_bike_view(request, bike_id):
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Thuê Xe Điện - {bike.bike_id}</title>
         <style>
-            body {{ font-family: Arial, sans-serif; text-align: center; padding: 15px; background: #f4f7f6; }}
-            .card {{ background: white; padding: 20px; border-radius: 12px; max-width: 400px; margin: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }}
-            .btn {{ display: inline-block; margin: 4px; padding: 10px 12px; background: #007bff; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px; }}
-            img {{ width: 100%; max-width: 280px; margin-top: 15px; border-radius: 8px; }}
+            * {{ box-sizing: border-box; }}
+            body {{
+                margin: 0;
+                min-height: 100vh;
+                padding: 5px 0 20px;
+                background: #f4f7f6;
+                color: #111;
+                font-family: Arial, sans-serif;
+                text-align: center;
+            }}
+            .card {{
+                width: min(100%, 550px);
+                min-height: 100vh;
+                margin: 0 auto;
+                padding: 34px 22px 24px;
+                background: #fff;
+                border-radius: 12px;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+            }}
+            h2 {{
+                margin: 14px auto 28px;
+                max-width: 500px;
+                font-size: clamp(25px, 5vw, 31px);
+                line-height: 1.15;
+            }}
+            .status-banner {{
+                margin: 0 0 18px;
+                padding: 13px 10px;
+                border-radius: 10px;
+                font-size: 20px;
+            }}
+            .package-label {{
+                margin: 0 0 18px;
+                font-size: 20px;
+            }}
+            .package-options {{
+                display: flex;
+                justify-content: center;
+                flex-wrap: wrap;
+                gap: 8px;
+            }}
+            .btn {{
+                display: inline-block;
+                min-width: 126px;
+                padding: 12px 13px;
+                background: #087df5;
+                color: white;
+                text-decoration: none;
+                border-radius: 7px;
+                font-size: 16px;
+                font-weight: bold;
+            }}
+            .btn:hover {{ background: #0568d0; }}
+            .qr-image {{
+                display: block;
+                width: min(100%, 280px);
+                margin: 27px auto 0;
+                border: 1px solid #264a85;
+                border-radius: 0;
+            }}
+            .waiting-message {{
+                margin: 28px 0 0;
+                color: #ef4b4b;
+                font-size: 21px;
+                font-weight: bold;
+                line-height: 1.4;
+            }}
+            .waiting-message small {{
+                display: block;
+                color: #555;
+                font-size: 16px;
+                font-weight: normal;
+                line-height: 1.35;
+            }}
+            @media (max-width: 420px) {{
+                .card {{ padding: 25px 14px 20px; }}
+                .btn {{ min-width: 0; flex: 1 1 100px; font-size: 14px; }}
+                .status-banner, .package-label {{ font-size: 17px; }}
+                .waiting-message {{ font-size: 19px; }}
+            }}
 
             /* Giao diện thông báo mở khóa thành công (Mặc định ẩn, hiện lên khi nhận được tiền) */
             #success-box {{
@@ -108,18 +184,16 @@ def rent_bike_view(request, bike_id):
 
             <!-- KHU VỰC CHỌN GÓI & QUÉT MÃ QR -->
             <div id="qr-section">
-                <p>Bấm chọn gói thời gian:</p>
-                <div>
+                <p class="package-label">Bấm chọn gói thời gian:</p>
+                <div class="package-options">
                     <a class="btn" href="?amount=2000">Test 1P (2k)</a>
                     <a class="btn" href="?amount=30000">30 Phút (30k)</a>
                     <a class="btn" href="?amount=50000">60 Phút (50k)</a>
                 </div>
-                <img src="{qr_url}" alt="Mã VietQR" />
-                <p style="color: #d9534f; font-weight: bold;">
-                    ⏳ Đang chờ thanh toán...<br>
-                    <span style="font-size: 13px; font-weight: normal; color: #555;">
-                        (Màn hình này sẽ tự động báo thành công ngay sau khi bạn chuyển khoản!)
-                    </span>
+                <img class="qr-image" src="{qr_url}" alt="Mã VietQR" />
+                <p class="waiting-message">
+                    ⏳ Đang chờ thanh toán...
+                    <small>(Màn hình này sẽ tự động báo thành công ngay sau khi bạn chuyển khoản!)</small>
                 </p>
             </div>
         </div>
