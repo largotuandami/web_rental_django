@@ -25,30 +25,34 @@ def _bike_code_key(value):
     return re.sub(r"[\s_-]+", "", value).casefold()
 
 
-def _get_or_create_bike(bike_id):
-    bike = Bike.objects.filter(bike_id__iexact=bike_id).first()
-    if bike:
-        return bike, False
-
+def _matching_bikes(bike_id):
     requested_key = _bike_code_key(bike_id)
-    for candidate in Bike.objects.all().order_by("id"):
-        if _bike_code_key(candidate.bike_id) == requested_key:
-            return candidate, False
+    return [
+        bike
+        for bike in Bike.objects.all().order_by("id")
+        if _bike_code_key(bike.bike_id) == requested_key
+    ]
+
+
+def _preferred_bike(bikes):
+    default_name = Bike._meta.get_field("name").default
+    return sorted(
+        bikes,
+        key=lambda bike: (bike.name == default_name, -bike.id),
+    )[0]
+
+
+def _get_or_create_bike(bike_id):
+    matches = _matching_bikes(bike_id)
+    if matches:
+        return _preferred_bike(matches), False
 
     return Bike.objects.create(bike_id=bike_id), True
 
 
 def _get_bike(bike_id):
-    bike = Bike.objects.filter(bike_id__iexact=bike_id).first()
-    if bike:
-        return bike
-
-    requested_key = _bike_code_key(bike_id)
-    for candidate in Bike.objects.all().order_by("id"):
-        if _bike_code_key(candidate.bike_id) == requested_key:
-            return candidate
-
-    return None
+    matches = _matching_bikes(bike_id)
+    return _preferred_bike(matches) if matches else None
 
 
 def rent_bike_view(request, bike_id):
