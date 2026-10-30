@@ -164,7 +164,7 @@ def rent_bike_view(request, bike_id):
     </head>
     <body>
         <div class="card">
-            <h2>{bike.name} ({bike.bike_id})</h2>
+            <h2>{bike.name}<br>({bike.bike_id})</h2>
             {status_banner}
 
             <!-- HỘP THÔNG BÁO THÀNH CÔNG (Tự động bật lên khi chuyển khoản xong) -->

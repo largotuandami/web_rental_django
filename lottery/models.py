@@ -7,7 +7,7 @@ class Bike(models.Model):
     name = models.CharField("Tên hiển thị", max_length=50, default="Xe điện ven hồ 01")
     is_active = models.BooleanField("Cho phép hoạt động", default=True)
     rental_end_time = models.DateTimeField("Thời điểm hết giờ", null=True, blank=True)
-    battery_volts = models.FloatField("Điện áp bình (V)", default=48)
+    battery_volts = models.FloatField("Điện áp bình (V)", default=24)
     updated_at = models.DateTimeField(auto_now=True)
     # ---> THÊM 2 DÒNG NÀY ĐỂ HÀNG ĐỢI LỆNH CHO ESP32 LẤY VỀ <---
     pending_command = models.CharField("Lệnh chờ", max_length=20, blank=True, default="")
