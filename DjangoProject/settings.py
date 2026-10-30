@@ -85,7 +85,7 @@ DATABASES = {
     'default': dj_database_url.config(
         default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
         conn_max_age=600,
-        ssl_require=not DEBUG,
+        ssl_require=not DEBUG and bool(os.environ.get("DATABASE_URL")),
     )
 }
 
@@ -142,3 +142,4 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'users.CustomUser'
 LOCALE_PATHS = [BASE_DIR / 'locale']
 GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY')
+MAPBOX_ACCESS_TOKEN = os.environ.get("MAPBOX_ACCESS_TOKEN", "")

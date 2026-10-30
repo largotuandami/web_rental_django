@@ -2,9 +2,10 @@ import json
 import re
 import urllib.parse
 from django.http import JsonResponse, HttpResponse
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 import paho.mqtt.publish as publish
-from .models import Bike, PaymentLog
+from .models import Bike, Geofence, GeofenceEvent, PaymentLog
 
 MQTT_BROKER = "broker.emqx.io"
 MQTT_PORT = 1883
@@ -45,6 +46,36 @@ def _preferred_bike(bikes):
 def _get_bike(bike_id):
     matches = _matching_bikes(bike_id)
     return _preferred_bike(matches) if matches else None
+
+
+def _point_in_polygon(latitude, longitude, polygon):
+    inside = False
+    for index, current in enumerate(polygon):
+        previous = polygon[index - 1]
+        current_lat, current_lon = current
+        previous_lat, previous_lon = previous
+        crosses = (current_lon > longitude) != (previous_lon > longitude)
+        if crosses:
+            edge_latitude = (
+                (previous_lat - current_lat)
+                * (longitude - current_lon)
+                / (previous_lon - current_lon)
+            ) + current_lat
+            if latitude < edge_latitude:
+                inside = not inside
+    return inside
+
+
+def _valid_polygon(polygon):
+    if not isinstance(polygon, list) or len(polygon) < 3:
+        return False
+    return all(
+        isinstance(point, list)
+        and len(point) == 2
+        and -90 <= float(point[0]) <= 90
+        and -180 <= float(point[1]) <= 180
+        for point in polygon
+    )
 
 
 def rent_bike_view(request, bike_id):
@@ -321,6 +352,57 @@ def rent_bike_view(request, bike_id):
     </html>
     """
     return HttpResponse(html)
+
+
+@csrf_exempt
+def gps_update_api(request, bike_id):
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    bike = _get_bike(bike_id)
+    if bike is None:
+        return JsonResponse({"error": "Bike not found"}, status=404)
+
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+        latitude = float(data["latitude"])
+        longitude = float(data["longitude"])
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+        return JsonResponse(
+            {"error": "JSON must contain numeric latitude and longitude"},
+            status=400,
+        )
+
+    if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
+        return JsonResponse({"error": "Invalid GPS coordinates"}, status=400)
+
+    geofence = Geofence.objects.filter(is_active=True).first()
+    if geofence is None or not _valid_polygon(geofence.polygon):
+        return JsonResponse({"error": "Active geofence is not configured"}, status=503)
+
+    is_inside = _point_in_polygon(latitude, longitude, geofence.polygon)
+    previous_state = bike.geofence_inside
+    now = timezone.now()
+    bike.latitude = latitude
+    bike.longitude = longitude
+    bike.geofence_inside = is_inside
+    bike.last_gps_at = now
+    bike.save(update_fields=("latitude", "longitude", "geofence_inside", "last_gps_at", "updated_at"))
+
+    if previous_state != is_inside or not is_inside:
+        GeofenceEvent.objects.create(
+            bike=bike,
+            latitude=latitude,
+            longitude=longitude,
+            is_inside=is_inside,
+        )
+
+    return JsonResponse({
+        "success": True,
+        "bike": bike.bike_id,
+        "inside_geofence": is_inside,
+        "action": "alert_only" if not is_inside else "none",
+    })
 
 
 @csrf_exempt

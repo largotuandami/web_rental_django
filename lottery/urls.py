@@ -6,4 +6,5 @@ urlpatterns = [
     path('webhook/payment/', views.payment_webhook, name='payment_webhook'),
     path('api/sync/<str:bike_id>/', views.esp32_sync_api, name='esp32_sync_api'),
     path('api/status/<str:bike_id>/', views.bike_status_api, name='bike_status_api'),
+    path('api/gps/<str:bike_id>/', views.gps_update_api, name='gps_update_api'),
 ]

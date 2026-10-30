@@ -12,6 +12,10 @@ class Bike(models.Model):
     # ---> THÊM 2 DÒNG NÀY ĐỂ HÀNG ĐỢI LỆNH CHO ESP32 LẤY VỀ <---
     pending_command = models.CharField("Lệnh chờ", max_length=20, blank=True, default="")
     pending_duration = models.IntegerField("Thời gian chờ (Giây)", default=0)
+    latitude = models.DecimalField("Vĩ độ GPS", max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField("Kinh độ GPS", max_digits=9, decimal_places=6, null=True, blank=True)
+    geofence_inside = models.BooleanField("Trong vùng địa lý", default=True)
+    last_gps_at = models.DateTimeField("Lần GPS cuối", null=True, blank=True)
 
     @property
     def is_rented(self):
@@ -56,3 +60,32 @@ class PaymentLog(models.Model):
 
     def __str__(self):
         return f"{self.bike.bike_id} - {self.amount}đ ({self.created_at.strftime('%H:%M %d/%m')})"
+
+
+class Geofence(models.Model):
+    name = models.CharField("Tên khu vực", max_length=100, default="Khu vực hồ")
+    polygon = models.JSONField(
+        "Đa giác (latitude, longitude)",
+        default=list,
+        help_text="Danh sách điểm theo thứ tự quanh khu vực.",
+    )
+    is_active = models.BooleanField("Kích hoạt", default=True)
+    updated_at = models.DateTimeField("Cập nhật lúc", auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+
+class GeofenceEvent(models.Model):
+    bike = models.ForeignKey(Bike, on_delete=models.CASCADE, related_name="geofence_events")
+    latitude = models.DecimalField("Vĩ độ", max_digits=9, decimal_places=6)
+    longitude = models.DecimalField("Kinh độ", max_digits=9, decimal_places=6)
+    is_inside = models.BooleanField("Trong vùng")
+    created_at = models.DateTimeField("Thời gian", auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        state = "Trong vùng" if self.is_inside else "Ngoài vùng"
+        return f"{self.bike.bike_id} - {state} ({self.created_at:%d/%m %H:%M})"

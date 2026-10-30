@@ -1,7 +1,8 @@
 import json
 from django.contrib import admin, messages
 from django.utils.html import format_html
-from .models import Bike, PaymentLog
+from django.conf import settings
+from .models import Bike, Geofence, GeofenceEvent, PaymentLog
 
 MQTT_BROKER = "broker.emqx.io"
 MQTT_PORT = 1883
@@ -93,3 +94,22 @@ class BikeAdmin(admin.ModelAdmin):
 class PaymentLogAdmin(admin.ModelAdmin):
     list_display = ('bike', 'amount', 'duration_sec', 'content', 'created_at')
     list_filter = ('bike', 'created_at')
+
+
+@admin.register(Geofence)
+class GeofenceAdmin(admin.ModelAdmin):
+    list_display = ("name", "is_active", "updated_at")
+    fields = ("name", "polygon", "is_active", "updated_at")
+    readonly_fields = ("updated_at",)
+
+    def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
+        extra_context = extra_context or {}
+        extra_context["mapbox_access_token"] = settings.MAPBOX_ACCESS_TOKEN
+        return super().changeform_view(request, object_id, form_url, extra_context)
+
+
+@admin.register(GeofenceEvent)
+class GeofenceEventAdmin(admin.ModelAdmin):
+    list_display = ("bike", "is_inside", "latitude", "longitude", "created_at")
+    list_filter = ("is_inside", "bike", "created_at")
+    readonly_fields = ("bike", "latitude", "longitude", "is_inside", "created_at")

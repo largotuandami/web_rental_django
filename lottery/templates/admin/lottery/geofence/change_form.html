@@ -1,0 +1,72 @@
+{% extends "admin/change_form.html" %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.15.0/mapbox-gl.css" rel="stylesheet">
+<link href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.5.0/mapbox-gl-draw.css" rel="stylesheet">
+<style>
+    #geofence-map { height: 520px; margin: 12px 0 20px; border-radius: 8px; }
+    .geofence-help { margin: 0 0 12px; color: #555; }
+</style>
+{% endblock %}
+
+{% block after_field_sets %}
+{{ block.super }}
+<div class="module">
+    <h2>Vẽ hàng rào địa lý</h2>
+    <p class="geofence-help">Chọn công cụ đa giác trên bản đồ, vẽ quanh khu vực rồi bấm Lưu.</p>
+    <div id="geofence-map"></div>
+</div>
+{% endblock %}
+
+{% block admin_change_form_document_ready %}
+{{ block.super }}
+{% if mapbox_access_token %}
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.15.0/mapbox-gl.js"></script>
+<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.5.0/mapbox-gl-draw.js"></script>
+<script>
+    (function () {
+        const polygonField = document.getElementById("id_polygon");
+        const initial = JSON.parse(polygonField.value || "[]");
+        const points = initial.map(function (point) { return [point[1], point[0]]; });
+        mapboxgl.accessToken = "{{ mapbox_access_token|escapejs }}";
+        const center = points.length ? points[0] : [105.8542, 21.0285];
+        const map = new mapboxgl.Map({
+            container: "geofence-map",
+            style: "mapbox://styles/mapbox/streets-v12",
+            center: center,
+            zoom: points.length ? 15 : 12
+        });
+        const draw = new MapboxDraw({
+            displayControlsDefault: false,
+            controls: { polygon: true, trash: true },
+            defaultMode: "draw_polygon"
+        });
+        map.addControl(new mapboxgl.NavigationControl());
+        map.addControl(draw);
+        map.on("load", function () {
+            if (points.length >= 3) {
+                draw.add({
+                    type: "Feature",
+                    geometry: { type: "Polygon", coordinates: [points.concat([points[0]])] }
+                });
+            }
+        });
+        function syncPolygon() {
+            const feature = draw.getAll().features[0];
+            const coordinates = feature && feature.geometry.coordinates[0];
+            polygonField.value = JSON.stringify(
+                (coordinates || []).slice(0, -1).map(function (point) {
+                    return [point[1], point[0]];
+                })
+            );
+        }
+        map.on("draw.create", syncPolygon);
+        map.on("draw.update", syncPolygon);
+        map.on("draw.delete", function () { polygonField.value = "[]"; });
+    }());
+</script>
+{% else %}
+<p class="errornote">Thiếu MAPBOX_ACCESS_TOKEN nên không thể hiển thị bản đồ.</p>
+{% endif %}
+{% endblock %}
