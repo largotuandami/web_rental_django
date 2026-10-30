@@ -42,21 +42,20 @@ def _preferred_bike(bikes):
     )[0]
 
 
-def _get_or_create_bike(bike_id):
-    matches = _matching_bikes(bike_id)
-    if matches:
-        return _preferred_bike(matches), False
-
-    return Bike.objects.create(bike_id=bike_id), True
-
-
 def _get_bike(bike_id):
     matches = _matching_bikes(bike_id)
     return _preferred_bike(matches) if matches else None
 
 
 def rent_bike_view(request, bike_id):
-    bike, _ = _get_or_create_bike(bike_id)
+    bike = _get_bike(bike_id)
+    if bike is None:
+        return HttpResponse(
+            "<h2 style='text-align:center;margin-top:50px;'>"
+            "Xe không tồn tại hoặc đã bị xóa."
+            "</h2>",
+            status=404,
+        )
 
     if not bike.is_active:
         return HttpResponse("<h2 style='text-align:center;margin-top:50px;'>Xe đang tạm ngưng bảo trì. Vui lòng chọn xe bên cạnh!</h2>")
@@ -339,7 +338,11 @@ def payment_webhook(request):
             content,
         )
         if match:
-            bike, _ = _get_or_create_bike(match.group(1))
+            bike = _get_bike(match.group(1))
+            if bike is None:
+                return JsonResponse(
+                    {"success": True, "message": "Ignored: bike not found"}
+                )
 
             duration_sec = PRICING.get(amount)
             if not duration_sec:
@@ -376,7 +379,9 @@ def payment_webhook(request):
         return JsonResponse({"success": False, "error": str(e)}, status=500)
 @csrf_exempt
 def esp32_sync_api(request, bike_id):
-    bike, _ = _get_or_create_bike(bike_id)
+    bike = _get_bike(bike_id)
+    if bike is None:
+        return JsonResponse({"error": "Bike not found"}, status=404)
 
     # Cập nhật điện áp ắc quy từ ESP32 gửi lên (nếu có)
     batt = request.GET.get("batt")
