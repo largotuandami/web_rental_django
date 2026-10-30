@@ -33,10 +33,19 @@ class BikeAdmin(admin.ModelAdmin):
 
     def status_badge(self, obj):
         if not obj.is_active:
-            return format_html('<span style="color: gray; font-weight: bold;">Bảo trì</span>')
+            return format_html(
+                '<span style="color: gray; font-weight: bold;">{}</span>',
+                "Bảo trì",
+            )
         if obj.is_rented:
-            return format_html('<span style="color: green; font-weight: bold;">🟢 Đang chạy</span>')
-        return format_html('<span style="color: #d9534f; font-weight: bold;">🔴 Đang khóa (Rảnh)</span>')
+            return format_html(
+                '<span style="color: green; font-weight: bold;">{}</span>',
+                "Đang chạy",
+            )
+        return format_html(
+            '<span style="color: #d9534f; font-weight: bold;">{}</span>',
+            "Đang khóa (Rảnh)",
+        )
     status_badge.short_description = "Trạng thái"
 
     def remaining_minutes_display(self, obj):
