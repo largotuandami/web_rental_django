@@ -334,12 +334,12 @@ def payment_webhook(request):
         content = str(data.get("content") or data.get("description") or "").upper()
         amount = int(data.get("transferAmount") or data.get("amount") or 0)
 
-        match = re.search(r"THUEXE\s*BIKE(\d+)", content)
+        match = re.search(
+            r"THUEXE\s*((?:BIKE|XE)[\s_-]*\d+)",
+            content,
+        )
         if match:
-            bike_number = match.group(1)
-            bike_id = f"BIKE_{bike_number}"
-
-            bike, _ = _get_or_create_bike(bike_id)
+            bike, _ = _get_or_create_bike(match.group(1))
 
             duration_sec = PRICING.get(amount)
             if not duration_sec:
