@@ -1,4 +1,6 @@
 Django
+dj-database-url
 gunicorn
 paho-mqtt
+psycopg[binary]
 python-dotenv
