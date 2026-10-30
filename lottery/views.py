@@ -2,7 +2,6 @@ import json
 import re
 import urllib.parse
 from django.http import JsonResponse, HttpResponse
-from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 import paho.mqtt.publish as publish
 from .models import Bike, PaymentLog
@@ -21,8 +20,39 @@ PRICING = {
     50000: 3600,   # 50.000đ -> 60 phút
 }
 
+
+def _bike_code_key(value):
+    return re.sub(r"[\s_-]+", "", value).casefold()
+
+
+def _get_or_create_bike(bike_id):
+    bike = Bike.objects.filter(bike_id__iexact=bike_id).first()
+    if bike:
+        return bike, False
+
+    requested_key = _bike_code_key(bike_id)
+    for candidate in Bike.objects.all().order_by("id"):
+        if _bike_code_key(candidate.bike_id) == requested_key:
+            return candidate, False
+
+    return Bike.objects.create(bike_id=bike_id), True
+
+
+def _get_bike(bike_id):
+    bike = Bike.objects.filter(bike_id__iexact=bike_id).first()
+    if bike:
+        return bike
+
+    requested_key = _bike_code_key(bike_id)
+    for candidate in Bike.objects.all().order_by("id"):
+        if _bike_code_key(candidate.bike_id) == requested_key:
+            return candidate
+
+    return None
+
+
 def rent_bike_view(request, bike_id):
-    bike, _ = Bike.objects.get_or_create(bike_id=bike_id)
+    bike, _ = _get_or_create_bike(bike_id)
 
     if not bike.is_active:
         return HttpResponse("<h2 style='text-align:center;margin-top:50px;'>Xe đang tạm ngưng bảo trì. Vui lòng chọn xe bên cạnh!</h2>")
@@ -305,7 +335,7 @@ def payment_webhook(request):
             bike_number = match.group(1)
             bike_id = f"BIKE_{bike_number}"
 
-            bike, _ = Bike.objects.get_or_create(bike_id=bike_id)
+            bike, _ = _get_or_create_bike(bike_id)
 
             duration_sec = PRICING.get(amount)
             if not duration_sec:
@@ -342,7 +372,7 @@ def payment_webhook(request):
         return JsonResponse({"success": False, "error": str(e)}, status=500)
 @csrf_exempt
 def esp32_sync_api(request, bike_id):
-    bike, _ = Bike.objects.get_or_create(bike_id=bike_id)
+    bike, _ = _get_or_create_bike(bike_id)
 
     # Cập nhật điện áp ắc quy từ ESP32 gửi lên (nếu có)
     batt = request.GET.get("batt")
@@ -368,7 +398,9 @@ def esp32_sync_api(request, bike_id):
     })
 
 def bike_status_api(request, bike_id):
-    bike = get_object_or_404(Bike, bike_id=bike_id)
+    bike = _get_bike(bike_id)
+    if bike is None:
+        return JsonResponse({"error": "Bike not found"}, status=404)
 
     # Tính chính xác tổng số giây còn lại
     remaining_seconds = 0
