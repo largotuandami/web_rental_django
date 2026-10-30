@@ -6,7 +6,7 @@ from .forms import CustomUserCreationForm
 
 def register_view(request):
     if request.user.is_authenticated:
-        return redirect('place_bet')  # Nếu đã đăng nhập, về trang đặt cược
+        return redirect('/')
 
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
@@ -14,7 +14,7 @@ def register_view(request):
             user = form.save()  # Lưu user, signal sẽ tự động tạo ví
             login(request, user)  # Tự động đăng nhập cho user sau khi đăng ký
             messages.success(request, "Đăng ký thành công!")
-            return redirect('place_bet')  # Về trang đặt cược
+            return redirect('/')
         else:
             messages.error(request, "Vui lòng sửa các lỗi bên dưới.")
     else:
@@ -28,5 +28,4 @@ def custom_logout_view(request):
     View đăng xuất tùy chỉnh để chấp nhận GET request.
     """
     logout(request)
-    # Chuyển hướng về trang chủ (tên 'home' ta đã đặt ở bước trước)
-    return redirect('home')
+    return redirect('/')

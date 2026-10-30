@@ -2,7 +2,6 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    #path('', views.home_view, name='home'),
     path('rent/<str:bike_id>/', views.rent_bike_view, name='rent_bike'),
     path('webhook/payment/', views.payment_webhook, name='payment_webhook'),
     path('api/sync/<str:bike_id>/', views.esp32_sync_api, name='esp32_sync_api'),

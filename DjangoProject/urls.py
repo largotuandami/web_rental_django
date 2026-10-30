@@ -23,4 +23,3 @@ urlpatterns = [
     path('tai-khoan/', include('users.urls')),
     path('vi-tien/', include('wallet.urls')),
 ]
-

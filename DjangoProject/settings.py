@@ -124,11 +124,8 @@ USE_TZ = True
 STATIC_URL = 'static/'
 # === CÀI ĐẶT CHUYỂN HƯỚNG LOGIN/LOGOUT ===
 
-# Khi đăng nhập thành công, chuyển đến trang 'place_bet'
-LOGIN_REDIRECT_URL = 'place_bet'
-
-# Khi đăng xuất, chuyển về trang 'home'
-LOGOUT_REDIRECT_URL = 'home'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
 
 # Trang đăng nhập (nếu user cố truy cập trang cần login)
 LOGIN_URL = 'login'

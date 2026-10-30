@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trang Lô Đề Bắc Nam</title>
+    <title>Thuê xe điện</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <style>
         body {
@@ -30,17 +30,13 @@
 </head>
 
 <nav>
-    <a href="/">Trang chủ</a> |
+    <a href="/">Trang chủ</a>
 
     {% if user.is_authenticated %}
-        <a href="{% url 'place_bet' %}">Đặt cược</a> |
-        <a href="{% url 'request_deposit' %}">Nạp tiền</a> |
-        <a href="{% url 'request_withdrawal' %}">Rút tiền</a> |
         Chào, {{ user.username }}
-        (Số dư: {{ user.wallet.balance|floatformat:"0" }}đ) |
         <a href="{% url 'logout' %}">Đăng xuất</a>
     {% else %}
-        <a href="{% url 'login' %}">Đăng nhập</a> |
+        | <a href="{% url 'login' %}">Đăng nhập</a> |
         <a href="{% url 'register' %}">Đăng ký</a>
     {% endif %}
 </nav>
@@ -48,13 +44,11 @@
 <body>
     <div class="container">
         <header>
-            <h1>Hệ thống cược Lô và Đề Bắc Nam</h1>
+            <h1>Hệ thống thuê xe điện</h1>
             <nav>
                 <a href="/">Trang chủ</a> |
-                <a href="{% url 'place_bet' %}">Đặt cược</a>
                 {% if user.is_authenticated %}
-                    | Chào, {{ user.username }}
-                    (Số dư: {{ user.wallet.balance }}đ)
+                    Chào, {{ user.username }}
                     | <a href="{% url 'logout' %}">Đăng xuất</a>
                 {% else %}
                     | <a href="{% url 'login' %}">Đăng nhập</a>
