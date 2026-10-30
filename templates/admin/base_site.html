@@ -1,0 +1,19 @@
+{% extends "admin/base.html" %}
+{% load i18n static %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | Rentals Admin{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'admin/css/rentals-admin.css' %}">
+{% endblock %}
+
+{% block branding %}
+<div class="rentals-brand">
+    <span class="rentals-brand-mark">R</span>
+    <div>
+        <div id="site-name"><a href="{% url 'admin:index' %}">Rentals Admin</a></div>
+        <span class="rentals-brand-subtitle">Quản lý hệ thống thuê xe</span>
+    </div>
+</div>
+{% endblock %}
